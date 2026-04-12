@@ -50,7 +50,7 @@ COLOR_ENEMY_HP   = (40,  160, 40)
 # RPG Discord application client ID
 # Using a placeholder — Discord RPC will simply be skipped if the ID is invalid
 # or if Discord is not running on the machine.
-DISCORD_CLIENT_ID = "1234567890123456789"   # Replace with your own App ID
+DISCORD_CLIENT_ID = "1492996353968570408"   # Replace with your own App ID
 
 # =============================================================================
 # ENEMY DATA — progressively harder foes
