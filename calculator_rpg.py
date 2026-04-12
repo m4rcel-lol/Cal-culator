@@ -14,6 +14,7 @@ import sys
 import math
 import random
 import time
+import uuid
 
 # Discord Rich Presence — import with graceful fallback if pypresence is missing
 try:
@@ -126,6 +127,9 @@ class DiscordRPC:
     def __init__(self, client_id: str):
         self.rpc    = None
         self.active = False
+        self.started_at = int(time.time())
+        self.party_id = ""
+        self.new_party()
         if not PYPRESENCE_AVAILABLE:
             print("[RPC] pypresence not installed — Discord RPC disabled.")
             return
@@ -139,20 +143,27 @@ class DiscordRPC:
             self.rpc    = None
             self.active = False
 
-    def update(self, state: str, details: str = "Cal-cu-ator"):
+    def update(self):
         """Update RPC state, silently ignoring any errors."""
         if not self.active or self.rpc is None:
             return
         try:
             self.rpc.update(
-                state   = state,
-                details = details,
+                state   = "Playing Duos",
+                details = "Survival",
                 large_image = "calculator",
-                large_text  = "Definitely just a calculator",
-                start       = int(time.time()),
+                large_text  = "Calculator",
+                small_image = "richard",
+                small_text  = "In party with: Richard Watterson",
+                party_id    = self.party_id,
+                party_size  = [2, 2],
+                start       = self.started_at,
             )
         except Exception as exc:
             print(f"[RPC] Update failed: {exc}")
+
+    def new_party(self):
+        self.party_id = uuid.uuid4().hex
 
     def close(self):
         if self.active and self.rpc is not None:
@@ -413,7 +424,7 @@ class CalcRPG:
 
         # Discord RPC
         self.rpc = DiscordRPC(DISCORD_CLIENT_ID)
-        self.rpc.update("Pretending to work", "Main Menu")
+        self.rpc.update()
 
         self.running      = True
         self.gameover_shown_at: float | None = None
@@ -553,10 +564,7 @@ class CalcRPG:
         if state.screen == GameState.SCREEN_MENU:
             # Any button starts/continues to the next battle
             state.start_battle()
-            self.rpc.update(
-                f"Battling {state.enemy_name} — HP: {state.player_hp}",
-                "In Combat",
-            )
+            self.rpc.update()
 
         elif state.screen == GameState.SCREEN_BATTLE:
             if key in ("clear", "allclear"):
@@ -565,22 +573,20 @@ class CalcRPG:
             state.apply_action(key)
 
             if state.screen == GameState.SCREEN_BATTLE:
-                self.rpc.update(
-                    f"Battling {state.enemy_name} — HP: {state.player_hp}",
-                    f"Used: {state.last_action}",
-                )
+                self.rpc.update()
             elif state.screen == GameState.SCREEN_MENU:
                 # Defeated an enemy, show brief menu before next fight
-                self.rpc.update("Enemy defeated! Preparing...", "Between Battles")
+                self.rpc.update()
             elif state.screen == GameState.SCREEN_EXPLODE:
-                self.rpc.update("Lost the game. Exploded.", "Status: GAME OVER")
+                self.rpc.update()
             elif state.screen == GameState.SCREEN_VICTORY:
-                self.rpc.update("Conquered everything!", "Victory!")
+                self.rpc.update()
 
         elif state.screen in (GameState.SCREEN_GAMEOVER, GameState.SCREEN_VICTORY):
             if key in ("clear", "allclear", "c", "C"):
                 state.reset()
-                self.rpc.update("Pretending to work", "Main Menu")
+                self.rpc.new_party()
+                self.rpc.update()
 
     # ------------------------------------------------------------------
     # MAIN LOOP
