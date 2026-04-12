@@ -14,6 +14,7 @@ import sys
 import math
 import random
 import time
+import uuid
 
 # Discord Rich Presence — import with graceful fallback if pypresence is missing
 try:
@@ -126,6 +127,8 @@ class DiscordRPC:
     def __init__(self, client_id: str):
         self.rpc    = None
         self.active = False
+        self.started_at = int(time.time())
+        self.party_id = uuid.uuid4().hex
         if not PYPRESENCE_AVAILABLE:
             print("[RPC] pypresence not installed — Discord RPC disabled.")
             return
@@ -145,11 +148,15 @@ class DiscordRPC:
             return
         try:
             self.rpc.update(
-                state   = state,
-                details = details,
+                state   = "Playing Duos",
+                details = "Survival",
                 large_image = "calculator",
-                large_text  = "Definitely just a calculator",
-                start       = int(time.time()),
+                large_text  = "Calculator",
+                small_image = "richard",
+                small_text  = "In party with: Richard Watterson",
+                party_id    = self.party_id,
+                party_size  = [2, 2],
+                start       = self.started_at,
             )
         except Exception as exc:
             print(f"[RPC] Update failed: {exc}")
