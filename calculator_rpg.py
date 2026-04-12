@@ -128,7 +128,8 @@ class DiscordRPC:
         self.rpc    = None
         self.active = False
         self.started_at = int(time.time())
-        self.party_id = uuid.uuid4().hex
+        self.party_id = ""
+        self.new_party()
         if not PYPRESENCE_AVAILABLE:
             print("[RPC] pypresence not installed — Discord RPC disabled.")
             return
@@ -160,6 +161,9 @@ class DiscordRPC:
             )
         except Exception as exc:
             print(f"[RPC] Update failed: {exc}")
+
+    def new_party(self):
+        self.party_id = uuid.uuid4().hex
 
     def close(self):
         if self.active and self.rpc is not None:
@@ -581,6 +585,7 @@ class CalcRPG:
         elif state.screen in (GameState.SCREEN_GAMEOVER, GameState.SCREEN_VICTORY):
             if key in ("clear", "allclear", "c", "C"):
                 state.reset()
+                self.rpc.new_party()
                 self.rpc.update()
 
     # ------------------------------------------------------------------
