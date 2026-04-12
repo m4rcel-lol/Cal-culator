@@ -142,7 +142,7 @@ class DiscordRPC:
             self.rpc    = None
             self.active = False
 
-    def update(self, state: str, details: str = "Cal-cu-ator"):
+    def update(self):
         """Update RPC state, silently ignoring any errors."""
         if not self.active or self.rpc is None:
             return
@@ -420,7 +420,7 @@ class CalcRPG:
 
         # Discord RPC
         self.rpc = DiscordRPC(DISCORD_CLIENT_ID)
-        self.rpc.update("Pretending to work", "Main Menu")
+        self.rpc.update()
 
         self.running      = True
         self.gameover_shown_at: float | None = None
@@ -560,10 +560,7 @@ class CalcRPG:
         if state.screen == GameState.SCREEN_MENU:
             # Any button starts/continues to the next battle
             state.start_battle()
-            self.rpc.update(
-                f"Battling {state.enemy_name} — HP: {state.player_hp}",
-                "In Combat",
-            )
+            self.rpc.update()
 
         elif state.screen == GameState.SCREEN_BATTLE:
             if key in ("clear", "allclear"):
@@ -572,22 +569,19 @@ class CalcRPG:
             state.apply_action(key)
 
             if state.screen == GameState.SCREEN_BATTLE:
-                self.rpc.update(
-                    f"Battling {state.enemy_name} — HP: {state.player_hp}",
-                    f"Used: {state.last_action}",
-                )
+                self.rpc.update()
             elif state.screen == GameState.SCREEN_MENU:
                 # Defeated an enemy, show brief menu before next fight
-                self.rpc.update("Enemy defeated! Preparing...", "Between Battles")
+                self.rpc.update()
             elif state.screen == GameState.SCREEN_EXPLODE:
-                self.rpc.update("Lost the game. Exploded.", "Status: GAME OVER")
+                self.rpc.update()
             elif state.screen == GameState.SCREEN_VICTORY:
-                self.rpc.update("Conquered everything!", "Victory!")
+                self.rpc.update()
 
         elif state.screen in (GameState.SCREEN_GAMEOVER, GameState.SCREEN_VICTORY):
             if key in ("clear", "allclear", "c", "C"):
                 state.reset()
-                self.rpc.update("Pretending to work", "Main Menu")
+                self.rpc.update()
 
     # ------------------------------------------------------------------
     # MAIN LOOP
