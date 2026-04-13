@@ -225,6 +225,57 @@ class Particle:
         c = tuple(max(0, int(ch * (1 - age_ratio * 0.8))) for ch in self.color)
         pygame.draw.circle(surface, c, (int(self.x), int(self.y)), r)
 
+class ConfettiParticle:
+    """A single confetti piece for the victory celebration effect."""
+
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y
+        self.vx = random.uniform(-2.2, 2.2)
+        self.vy = random.uniform(-7.2, -2.8)
+        self.size = random.randint(4, 9)
+        self.angle = random.uniform(0, 2 * math.pi)
+        self.spin = random.uniform(-0.22, 0.22)
+        self.gravity = random.uniform(0.10, 0.20)
+        self.life = random.uniform(1.8, 3.1)
+        self.born_at = time.time()
+        self.color = random.choice([
+            (255, 90, 90), (255, 180, 60), (255, 235, 90),
+            (80, 220, 120), (90, 170, 255), (190, 120, 255),
+            (255, 120, 210),
+        ])
+
+    @property
+    def alive(self) -> bool:
+        return (time.time() - self.born_at) < self.life
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += self.gravity
+        self.vx *= 0.996
+        self.angle += self.spin
+
+    def draw(self, surface: pygame.Surface):
+        age_ratio = (time.time() - self.born_at) / self.life
+        if age_ratio >= 1:
+            return
+        fade = max(0.35, 1 - age_ratio * 0.85)
+        color = tuple(max(0, min(255, int(ch * fade))) for ch in self.color)
+        half_w = self.size
+        half_h = max(2, self.size // 2)
+        cos_a = math.cos(self.angle)
+        sin_a = math.sin(self.angle)
+        corners = [(-half_w, -half_h), (half_w, -half_h), (half_w, half_h), (-half_w, half_h)]
+        points = [
+            (
+                int(self.x + dx * cos_a - dy * sin_a),
+                int(self.y + dx * sin_a + dy * cos_a),
+            )
+            for dx, dy in corners
+        ]
+        pygame.draw.polygon(surface, color, points)
+
 # =============================================================================
 # BUTTON
 # =============================================================================
@@ -302,15 +353,29 @@ class GameState:
         self.enemy_name  = ""
         self.log_lines: list[str] = ["Welcome!", "Press any button to begin."]
         self.particles: list[Particle] = []
+        self.victory_confetti: list[ConfettiParticle] = []
         self.explode_start: float | None = None
+        self.last_confetti_spawn = 0.0
         self.last_action: str = ""
         self.blocking    = False
         self.dodging     = False
         self.richard_clutch_used = False
 
+    def _start_victory_celebration(self):
+        self.screen = GameState.SCREEN_VICTORY
+        self.victory_confetti = []
+        self._spawn_confetti(180)
+        self.last_confetti_spawn = time.time()
+
+    def _spawn_confetti(self, amount: int = 36):
+        for _ in range(amount):
+            x = random.randint(-30, WINDOW_WIDTH + 30)
+            y = random.randint(-30, 120)
+            self.victory_confetti.append(ConfettiParticle(x, y))
+
     def start_battle(self):
         if self.enemy_index >= len(ENEMIES):
-            self.screen = GameState.SCREEN_VICTORY
+            self._start_victory_celebration()
             return
         enemy = ENEMIES[self.enemy_index]
         self.enemy_name  = enemy["name"]
@@ -339,7 +404,7 @@ class GameState:
         self.log_lines.append(f"{self.enemy_name} defeated! +{xp} XP")
         self.enemy_index += 1
         if self.enemy_index >= len(ENEMIES):
-            self.screen = GameState.SCREEN_VICTORY
+            self._start_victory_celebration()
         else:
             self.log_lines.append("Press any button for next battle.")
             self.screen = GameState.SCREEN_MENU
@@ -439,6 +504,15 @@ class GameState:
         if elapsed > 2.5 and not self.particles:
             return True
         return False
+
+    def update_victory_confetti(self):
+        self.victory_confetti = [c for c in self.victory_confetti if c.alive and c.y < WINDOW_HEIGHT + 40]
+        for confetti in self.victory_confetti:
+            confetti.update()
+        now = time.time()
+        if now - self.last_confetti_spawn > 0.14:
+            self._spawn_confetti(random.randint(16, 30))
+            self.last_confetti_spawn = now
 
 # =============================================================================
 # MAIN GAME CLASS
@@ -556,8 +630,10 @@ class CalcRPG:
 
         elif state.screen == GameState.SCREEN_VICTORY:
             self._blit_centered("YOU WIN!", self.font_huge, (50, 220, 50), 50)
-            self._blit_centered(f"Total XP: {state.player_xp}", self.font_mid, (200, 200, 60), 105)
-            self._blit_centered("Press C to play again", self.font_small, (160, 160, 160), 140)
+            self._blit_centered("Ultimate Calculator Champion", self.font_small, (140, 220, 255), 86)
+            self._blit_centered(f"Total XP: {state.player_xp}", self.font_mid, (220, 210, 70), 110)
+            self._blit_centered("Press C to play again", self.font_small, (175, 175, 175), 140)
+            self._blit_centered("Enjoy the confetti storm!", self.font_small, (255, 165, 225), 18)
 
     def _draw_hp_bar(self, x, y, w, h, current, maximum, color, label):
         ratio  = max(0.0, current / maximum) if maximum else 0.0
@@ -599,6 +675,10 @@ class CalcRPG:
                         (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2),
                         radius, 3,
                     )
+
+    def _draw_victory_confetti(self):
+        for confetti in self.state.victory_confetti:
+            confetti.draw(self.screen_surf)
 
     # ------------------------------------------------------------------
     # EVENT HANDLING
@@ -663,6 +743,8 @@ class CalcRPG:
                 done = self.state.update_explosion()
                 if done:
                     self.state.screen = GameState.SCREEN_GAMEOVER
+            elif self.state.screen == GameState.SCREEN_VICTORY:
+                self.state.update_victory_confetti()
 
             # --- DRAWING ---
             self.screen_surf.fill(COLOR_BG)
@@ -671,6 +753,8 @@ class CalcRPG:
                 btn.draw(self.screen_surf, self.font_mid)
             if self.state.screen in (GameState.SCREEN_EXPLODE, GameState.SCREEN_GAMEOVER):
                 self._draw_explosion()
+            elif self.state.screen == GameState.SCREEN_VICTORY:
+                self._draw_victory_confetti()
 
             pygame.display.flip()
 
