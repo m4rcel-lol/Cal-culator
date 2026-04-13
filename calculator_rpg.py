@@ -31,6 +31,7 @@ WINDOW_WIDTH  = 360
 WINDOW_HEIGHT = 540
 FPS           = 60
 TITLE         = "Calculator"         # Boring calculator window title for cover
+CONFETTI_SPAWN_INTERVAL = 0.14
 
 # Colour palette (Linux GTK-style calculator inspired)
 COLOR_BG         = (42,  42,  42)    # Dark background
@@ -510,7 +511,7 @@ class GameState:
         for confetti in self.victory_confetti:
             confetti.update()
         now = time.time()
-        if now - self.last_confetti_spawn > 0.14:
+        if now - self.last_confetti_spawn > CONFETTI_SPAWN_INTERVAL:
             self._spawn_confetti(random.randint(16, 30))
             self.last_confetti_spawn = now
 
