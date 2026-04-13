@@ -27,5 +27,5 @@ py -3 calculator_rpg.py
 or use the included launcher:
 
 ```bat
-run_windows.bat
+py -3 run_windows.py
 ```
