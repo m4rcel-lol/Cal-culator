@@ -13,11 +13,11 @@ def main() -> int:
         print("Error: calculator_rpg.py was not found in this folder.")
         return 1
 
-    python_exe = sys.executable or "python"
+    python_exe = sys.executable
     try:
         result = subprocess.run([python_exe, str(game_file)])
     except OSError as exc:
-        print(f"Error: Failed to start the game: {exc}")
+        print(f"Error: Failed to start the game with '{python_exe} {game_file}': {exc}")
         return 1
 
     return result.returncode
