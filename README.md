@@ -1,6 +1,10 @@
 # Cal-culator
 Richard Watterson reviewed this game, but it recently had an update.
 
+## New in this update
+- Duo system: you now party up with **Richard Watterson (Pro Duo)** in battles.
+- Richard can assist with bonus damage and a clutch heal when your HP is low.
+
 ## Requirements
 - Python 3
 - `pygame`

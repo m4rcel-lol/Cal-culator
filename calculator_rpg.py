@@ -66,6 +66,8 @@ ENEMIES = [
 
 PLAYER_MAX_HP   = 100
 PLAYER_START_HP = 100
+DUO_PARTNER_NAME = "Richard Watterson"
+DUO_PARTNER_ROLE = "Pro Duo"
 
 # =============================================================================
 # BUTTON LAYOUT
@@ -297,6 +299,7 @@ class GameState:
         self.last_action: str = ""
         self.blocking    = False
         self.dodging     = False
+        self.richard_clutch_used = False
 
     def start_battle(self):
         if self.enemy_index >= len(ENEMIES):
@@ -310,13 +313,52 @@ class GameState:
         self.log_lines   = [
             f"A new foe appears:",
             f"  >> {self.enemy_name} <<",
+            f"{DUO_PARTNER_NAME} ({DUO_PARTNER_ROLE}) joins your party.",
             "Choose your action!",
         ]
         self.blocking = False
         self.dodging  = False
+        self.richard_clutch_used = False
 
     def current_enemy(self) -> dict:
         return ENEMIES[self.enemy_index]
+
+    def _handle_enemy_defeat(self) -> bool:
+        """Return True if current enemy was defeated and state advanced."""
+        if self.enemy_hp > 0:
+            return False
+        xp = self.current_enemy()["xp"]
+        self.player_xp += xp
+        self.log_lines.append(f"{self.enemy_name} defeated! +{xp} XP")
+        self.enemy_index += 1
+        if self.enemy_index >= len(ENEMIES):
+            self.screen = GameState.SCREEN_VICTORY
+        else:
+            self.log_lines.append("Press any button for next battle.")
+            self.screen = GameState.SCREEN_MENU
+        return True
+
+    def _richard_assist(self):
+        """Richard takes a pro duo action each turn."""
+        if self.enemy_hp <= 0 or self.screen != GameState.SCREEN_BATTLE:
+            return
+
+        # Clutch heal once per battle when your HP is low.
+        if self.player_hp <= 35 and not self.richard_clutch_used:
+            clutch_heal = random.randint(16, 28)
+            actual_heal = min(clutch_heal, self.player_max - self.player_hp)
+            self.player_hp += actual_heal
+            self.richard_clutch_used = True
+            self.log_lines.append(f"{DUO_PARTNER_NAME} uses Pro Coaching! +{actual_heal} HP")
+            return
+
+        assist_roll = random.random()
+        if assist_roll < 0.80:
+            assist_dmg = random.randint(8, 16)
+            self.enemy_hp = max(0, self.enemy_hp - assist_dmg)
+            self.log_lines.append(f"{DUO_PARTNER_NAME} assists! {assist_dmg} bonus dmg.")
+        else:
+            self.log_lines.append(f"{DUO_PARTNER_NAME} calls the play — you stay focused.")
 
     def apply_action(self, key: str):
         """Process a button press during battle."""
@@ -350,16 +392,12 @@ class GameState:
             self.log_lines.append(f"You use {name}. Nothing happens...")
 
         # --- Check enemy death ---
-        if self.enemy_hp <= 0:
-            xp = self.current_enemy()["xp"]
-            self.player_xp += xp
-            self.log_lines.append(f"{self.enemy_name} defeated! +{xp} XP")
-            self.enemy_index += 1
-            if self.enemy_index >= len(ENEMIES):
-                self.screen = GameState.SCREEN_VICTORY
-            else:
-                self.log_lines.append("Press any button for next battle.")
-                self.screen = GameState.SCREEN_MENU   # brief pause before next
+        if self._handle_enemy_defeat():
+            return
+
+        # --- Duo assist turn ---
+        self._richard_assist()
+        if self._handle_enemy_defeat():
             return
 
         # --- Enemy turn (unless dodged) ---
@@ -494,6 +532,8 @@ class CalcRPG:
             # XP
             xp_surf = self.font_small.render(f"XP: {state.player_xp}", True, (180, 180, 60))
             self.screen_surf.blit(xp_surf, (10, 78))
+            duo_surf = self.font_small.render(f"Duo: {DUO_PARTNER_NAME} ({DUO_PARTNER_ROLE})", True, (120, 190, 255))
+            self.screen_surf.blit(duo_surf, (110, 78))
 
             # Action log lines
             y_off = 98
