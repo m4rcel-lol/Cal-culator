@@ -21,7 +21,7 @@ python3 calculator_rpg.py
 You can either run:
 
 ```bat
-python calculator_rpg.py
+py -3 calculator_rpg.py
 ```
 
 or use the included launcher:

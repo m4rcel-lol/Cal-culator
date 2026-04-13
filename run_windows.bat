@@ -1,5 +1,5 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-python calculator_rpg.py
+py -3 calculator_rpg.py
 endlocal
