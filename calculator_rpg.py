@@ -46,6 +46,7 @@ COLOR_BORDER     = (80,  80,  80)    # Button border
 COLOR_HP_BAR_BG  = (60,  20,  20)
 COLOR_HP_BAR_FG  = (200, 40,  40)
 COLOR_ENEMY_HP   = (40,  160, 40)
+COLOR_DUO_PARTNER = (120, 190, 255)
 
 # RPG Discord application client ID
 # Using a placeholder — Discord RPC will simply be skipped if the ID is invalid
@@ -68,6 +69,12 @@ PLAYER_MAX_HP   = 100
 PLAYER_START_HP = 100
 DUO_PARTNER_NAME = "Richard Watterson"
 DUO_PARTNER_ROLE = "Pro Duo"
+DUO_CLUTCH_HP_THRESHOLD = 35
+DUO_CLUTCH_HEAL_MIN = 16
+DUO_CLUTCH_HEAL_MAX = 28
+DUO_ASSIST_CHANCE = 0.80
+DUO_ASSIST_DMG_MIN = 8
+DUO_ASSIST_DMG_MAX = 16
 
 # =============================================================================
 # BUTTON LAYOUT
@@ -344,8 +351,8 @@ class GameState:
             return
 
         # Clutch heal once per battle when your HP is low.
-        if self.player_hp <= 35 and not self.richard_clutch_used:
-            clutch_heal = random.randint(16, 28)
+        if self.player_hp <= DUO_CLUTCH_HP_THRESHOLD and not self.richard_clutch_used:
+            clutch_heal = random.randint(DUO_CLUTCH_HEAL_MIN, DUO_CLUTCH_HEAL_MAX)
             actual_heal = min(clutch_heal, self.player_max - self.player_hp)
             self.player_hp += actual_heal
             self.richard_clutch_used = True
@@ -353,8 +360,8 @@ class GameState:
             return
 
         assist_roll = random.random()
-        if assist_roll < 0.80:
-            assist_dmg = random.randint(8, 16)
+        if assist_roll < DUO_ASSIST_CHANCE:
+            assist_dmg = random.randint(DUO_ASSIST_DMG_MIN, DUO_ASSIST_DMG_MAX)
             self.enemy_hp = max(0, self.enemy_hp - assist_dmg)
             self.log_lines.append(f"{DUO_PARTNER_NAME} assists! {assist_dmg} bonus dmg.")
         else:
@@ -532,7 +539,7 @@ class CalcRPG:
             # XP
             xp_surf = self.font_small.render(f"XP: {state.player_xp}", True, (180, 180, 60))
             self.screen_surf.blit(xp_surf, (10, 78))
-            duo_surf = self.font_small.render(f"Duo: {DUO_PARTNER_NAME} ({DUO_PARTNER_ROLE})", True, (120, 190, 255))
+            duo_surf = self.font_small.render(f"Duo: {DUO_PARTNER_NAME} ({DUO_PARTNER_ROLE})", True, COLOR_DUO_PARTNER)
             self.screen_surf.blit(duo_surf, (110, 78))
 
             # Action log lines
