@@ -15,9 +15,9 @@ def main() -> int:
 
     python_exe = sys.executable or "python"
     try:
-        result = subprocess.run([python_exe, str(game_file)], check=False)
+        result = subprocess.run([python_exe, str(game_file)])
     except OSError as exc:
-        print(f"Error: Failed to start the game with Python 3: {exc}")
+        print(f"Error: Failed to start the game: {exc}")
         return 1
 
     return result.returncode
